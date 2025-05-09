@@ -4,7 +4,17 @@ const jwt = require('jsonwebtoken');
 
 exports.register = async (req, res) => {
   try {
-    const { name, studentId, email, phone, password, isStudent, onCampus, buildingNumber, roomNumber } = req.body;
+    const {
+      name,
+      studentId,
+      email,
+      phone,
+      password,
+      isStudent,
+      onCampus,
+      buildingNumber,
+      roomNumber
+    } = req.body;
 
     if (!name || !studentId || !email || !phone || !password || isStudent === undefined || onCampus === undefined) {
       return res.status(400).json({ message: 'Missing required fields' });
@@ -30,6 +40,7 @@ exports.register = async (req, res) => {
     await newUser.save();
     res.status(201).json({ message: 'User registered successfully' });
   } catch (err) {
+    console.error('Register Error:', err); // ✅ logs full error
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 };
@@ -58,6 +69,7 @@ exports.login = async (req, res) => {
       }
     });
   } catch (err) {
+    console.error('Login Error:', err); // ✅ logs full error
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 };
