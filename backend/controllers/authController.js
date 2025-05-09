@@ -6,6 +6,10 @@ exports.register = async (req, res) => {
   try {
     const { name, studentId, email, phone, password, isStudent, onCampus, buildingNumber, roomNumber } = req.body;
 
+    if (!name || !studentId || !email || !phone || !password || isStudent === undefined || onCampus === undefined) {
+      return res.status(400).json({ message: 'Missing required fields' });
+    }
+
     const existingUser = await User.findOne({ email });
     if (existingUser) return res.status(400).json({ message: 'Email already exists' });
 
