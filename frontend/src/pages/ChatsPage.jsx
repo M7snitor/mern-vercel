@@ -1,7 +1,7 @@
 // src/pages/ChatsPage.jsx
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import axios from 'axios'
+import axios from './axios'
 import { useAuth } from '../context/AuthContext'
 
 export default function ChatsPage() {
@@ -14,7 +14,7 @@ export default function ChatsPage() {
 
   useEffect(() => {
     axios
-      .get(`${API}/api/messages/conversations`, headers)
+      .get(`${API}/messages/conversations`, headers)
       .then(res => {
         // each item has: { user: { accountId, name }, lastMessage, timestamp }
         setPeers(res.data.conversations || [])

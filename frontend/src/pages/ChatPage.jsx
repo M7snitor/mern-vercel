@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import axios from 'axios'
+import axios from './axios'
 import { useAuth } from '../context/AuthContext'
 
 export default function ChatPage() {
@@ -22,7 +22,7 @@ export default function ChatPage() {
       return
     }
     axios
-      .get(`${API}/api/messages/${withUserId}`, headers)
+      .get(`${API}/messages/${withUserId}`, headers)
       .then(res => setMessages(res.data.messages))
       .catch(() => navigate(-1))
   }, [withUserId, navigate])
@@ -36,7 +36,7 @@ export default function ChatPage() {
     if (!content) return
     try {
       const res = await axios.post(
-        `${API}/api/messages`,
+        `${API}/messages`,
         { to: withUserId, content },
         headers
       )

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import axios from 'axios'
+import axios from './axios'
 import { useAuth } from '../context/AuthContext'
 
 import { ReactComponent as DropdownIcon } from '../assets/icons/dropdown.svg'
@@ -43,7 +43,7 @@ export default function AccountPage() {
   useEffect(() => {
     if (!isAuthenticated) return
 
-    axios.get(`${process.env.REACT_APP_API_URL}/api/users/profile`)
+    axios.get(`${process.env.REACT_APP_API_URL}/users/profile`)
       .then(r => {
         const u = r.data.user
         setEmail(u.email || '')
@@ -54,7 +54,7 @@ export default function AccountPage() {
       })
       .catch(() => {})
 
-    axios.get(`${process.env.REACT_APP_API_URL}/api/users/my-listings`)
+    axios.get(`${process.env.REACT_APP_API_URL}/users/my-listings`)
       .then(r => setItems(r.data.listings || []))
       .catch(() => {})
   }, [isAuthenticated])
@@ -62,7 +62,7 @@ export default function AccountPage() {
   const handleUpdate = async () => {
     try {
       await axios.put(
-        `${process.env.REACT_APP_API_URL}/api/users/update-profile`,
+        `${process.env.REACT_APP_API_URL}/users/update-profile`,
         {
           email,
           phone,
@@ -80,7 +80,7 @@ export default function AccountPage() {
   const handleDelete = async (id) => {
     if (!window.confirm('Remove this listing?')) return
     try {
-      await axios.delete(`${process.env.REACT_APP_API_URL}/api/items/${id}`)
+      await axios.delete(`${process.env.REACT_APP_API_URL}/items/${id}`)
       setItems(items.filter(i => i._id !== id))
     } catch {
       alert('Failed to delete')
