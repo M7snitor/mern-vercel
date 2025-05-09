@@ -1,0 +1,21 @@
+{
+  "short_name": "KFUPM Market",
+  "name": "KFUPM Market - Buy, Sell & Support Clubs",
+  "icons": [
+    {
+      "src": "alphalogo.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "alphalogo.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#00813e",
+  "background_color": "#ffffff"
+}
+
