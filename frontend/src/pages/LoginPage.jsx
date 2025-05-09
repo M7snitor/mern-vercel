@@ -32,7 +32,25 @@ function LoginPage() {
       const url = isLogin
         ? `${process.env.REACT_APP_API_URL}/auth/login`
         : `${process.env.REACT_APP_API_URL}/auth/register`;
-      const response = await axios.post(url, formData);
+
+      const payload = isLogin
+        ? {
+            email: formData.email,
+            password: formData.password
+          }
+        : {
+            name: formData.name,
+            studentId: formData.studentId,
+            email: formData.email,
+            phone: formData.phone,
+            password: formData.password,
+            isStudent: true,
+            onCampus: formData.onCampus,
+            buildingNumber: formData.onCampus ? formData.buildingNumber : '0',
+            roomNumber: formData.onCampus ? formData.roomNumber : '0'
+          };
+
+      const response = await axios.post(url, payload);
       const { user, token } = response.data;
       login(user, token);
       navigate('/home');
