@@ -1,36 +1,29 @@
-const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
-require('dotenv').config();
+// backend/index.js
 
-const app = express();
+const express      = require('express')
+const mongoose     = require('mongoose')
+const cors         = require('cors')
+const serverless   = require('serverless-http')
+require('dotenv').config()
 
-// Middleware
-app.use(cors());
-app.use(express.json());
+const app = express()
+app.use(cors())
+app.use(express.json())
+app.use('/uploads', express.static('uploads'))
+app.use('/api/auth',     require('./routes/auth'))
+app.use('/api/users',    require('./routes/user'))
+app.use('/api/items',    require('./routes/items'))
+app.use('/api/messages', require('./routes/message'))
 
-// Static file serving (won’t work for uploads on Vercel — now using Cloudinary)
-app.use('/uploads', express.static('uploads')); // okay to leave for dev/testing
+let isConnected = false
+async function connectDB() {
+  if (isConnected) return
+  await mongoose.connect(process.env.MONGO_URI)
+  isConnected = true
+}
 
-// Routes
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/users', require('./routes/user'));
-app.use('/api/items', require('./routes/items')); // ← Item routes using Cloudinary
-app.use('/api/messages', require('./routes/message'));
-
-// MongoDB connection (prevent multiple connections)
-let isConnected = false;
-const connectDB = async () => {
-  if (isConnected) return;
-  try {
-    await mongoose.connect(process.env.MONGO_URI);
-    isConnected = true;
-    console.log('MongoDB connected');
-  } catch (err) {
-    console.error('MongoDB connection error:', err);
-  }
-};
-
-connectDB();
-
-module.exports = app; // Export app for Vercel serverless deployment
+// Export a single handler that ensures the DB is connected
+module.exports = serverless(async (req, res) => {
+  await connectDB()
+  return app(req, res)
+})
