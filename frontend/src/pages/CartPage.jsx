@@ -1,8 +1,6 @@
-// src/pages/CartPage.jsx
-
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import axios from './axios'
+import axios from './axios'               // ← your axios instance
 import { useAuth } from '../context/AuthContext'
 
 import { ReactComponent as DeleteIcon }   from '../assets/icons/deletef.svg'
@@ -14,52 +12,76 @@ import { ReactComponent as CheckIcon }    from '../assets/icons/check.svg'
 import { ReactComponent as DropdownIcon } from '../assets/icons/dropdown.svg'
 
 export default function CartPage() {
-  const { token }    = useAuth()
-  const navigate     = useNavigate()
-  const API          = process.env.REACT_APP_API_URL
-  const headers      = { headers: { Authorization: `Bearer ${token}` } }
+  const { token, isAuthenticated } = useAuth()
+  const navigate                  = useNavigate()
 
-  const [cartOpen,   setCartOpen]   = useState(true)
-  const [watchOpen,  setWatchOpen]  = useState(true)
-  const [bidOpen,    setBidOpen]    = useState(true)
+  const [cartOpen,  setCartOpen]  = useState(true)
+  const [watchOpen, setWatchOpen] = useState(true)
+  const [bidOpen,   setBidOpen]   = useState(true)
 
-  const [cart,       setCart]       = useState([])
-  const [watchlist,  setWatchlist]  = useState([])
-  const [bidlist,    setBidlist]    = useState([])
+  const [cart,      setCart]      = useState([])
+  const [watchlist, setWatchlist] = useState([])
+  const [bidlist,   setBidlist]   = useState([])
 
+  // as soon as we have a token, set up headers and fetch lists
   useEffect(() => {
-    axios.get(`${API}/users/cart`, headers).then(r => setCart(r.data.cart))
-    axios.get(`${API}/users/watchlist`, headers).then(r => setWatchlist(r.data.watchlist))
-    axios.get(`${API}/users/bidlist`, headers).then(r => setBidlist(r.data.bidlist))
-  }, [])
+    if (!token) return
+
+    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+
+    axios.get('/users/cart')
+      .then(res => setCart(res.data.cart))
+      .catch(() => {})
+
+    axios.get('/users/watchlist')
+      .then(res => setWatchlist(res.data.watchlist))
+      .catch(() => {})
+
+    axios.get('/users/bidlist')
+      .then(res => setBidlist(res.data.bidlist))
+      .catch(() => {})
+
+  }, [token])
+
+  // require sign-in
+  if (!isAuthenticated) {
+    return (
+      <div style={styles.wrapper}>
+        <p style={{ color: 'var(--text-light)' }}>You need to sign in.</p>
+        <button onClick={() => navigate('/')} style={styles.saveBtn}>
+          Sign In
+        </button>
+      </div>
+    )
+  }
 
   const removeFrom = async (list, id) => {
-    await axios.delete(`${API}/users/${list}/remove/${id}`, headers)
+    await axios.delete(`/users/${list}/remove/${id}`)
     if (list === 'cart')      setCart(c => c.filter(i => i._id !== id))
     if (list === 'watchlist') setWatchlist(w => w.filter(i => i._id !== id))
     if (list === 'bidlist')   setBidlist(b => b.filter(i => i._id !== id))
   }
 
   const moveTo = async (from, to, item) => {
-    await axios.post(`${API}/users/${from}/move-to-${to}/${item._id}`, {}, headers)
+    await axios.post(`/users/${from}/move-to-${to}/${item._id}`)
     removeFrom(from, item._id)
     if (to === 'cart')      setCart(c => [...c, item])
     if (to === 'watchlist') setWatchlist(w => [...w, item])
   }
 
-  const total = cart.reduce(
-    (sum, i) => sum + i.price,
-    0
-  )
+  const total = cart.reduce((sum, i) => sum + i.price, 0)
 
   const buyAll = async () => {
+    // decrement stock
     await Promise.all(cart.map(i =>
-      axios.put(`${API}/items/${i._id}/decrement`, {}, headers)
+      axios.put(`/items/${i._id}/decrement`)
     ))
+    // clear cart
     await Promise.all(cart.map(i =>
-      axios.delete(`${API}/users/cart/remove/${i._id}`, headers)
+      axios.delete(`/users/cart/remove/${i._id}`)
     ))
-    const res = await axios.get(`${API}/users/cart`, headers)
+    // refresh
+    const res = await axios.get('/users/cart')
     setCart(res.data.cart)
     alert(`Purchased for ${total} SAR`)
   }
@@ -84,8 +106,7 @@ export default function CartPage() {
     let daysLeft = null
     if (type === 'bid' && item.auctionEndDate) {
       const diff = new Date(item.auctionEndDate) - Date.now()
-      daysLeft = Math.ceil(diff / (1000 * 60 * 60 * 24))
-      if (daysLeft < 0) daysLeft = 0
+      daysLeft = Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)))
     }
 
     return (

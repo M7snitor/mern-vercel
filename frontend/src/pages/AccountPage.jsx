@@ -22,30 +22,13 @@ export default function AccountPage() {
   const [building, setBuilding] = useState('')
   const [room, setRoom] = useState('')
   const [items, setItems] = useState([])
-  const HeaderCapsule = ({ title, count, open, setOpen, icon: Icon }) => (
-      <div style={styles.headerCapsule} onClick={() => setOpen(!open)}>
-        <div style={styles.leftSection}>
-          <DropdownIcon
-            style={{
-              ...styles.dropdownIcon,
-              transform: open ? 'rotate(0deg)' : 'rotate(-90deg)',
-            }}
-          />
-          <div>
-            <div style={styles.headerText}>{title}</div>
-            <div style={styles.subText}>{count} item(s)</div>
-          </div>
-        </div>
-        {Icon && <Icon style={styles.sectionIcon} />}
-      </div>
-    );
 
   useEffect(() => {
     if (!isAuthenticated) return
 
-    axios.get(`${process.env.REACT_APP_API_URL}/users/profile`)
-      .then(r => {
-        const u = r.data.user
+    axios.get('/users/profile')
+      .then(res => {
+        const u = res.data.user
         setEmail(u.email || '')
         setPhone(u.phone || '')
         setOnCampus(!!u.onCampus)
@@ -54,38 +37,10 @@ export default function AccountPage() {
       })
       .catch(() => {})
 
-    axios.get(`${process.env.REACT_APP_API_URL}/users/my-listings`)
-      .then(r => setItems(r.data.listings || []))
+    axios.get('/users/my-listings')
+      .then(res => setItems(res.data.listings || []))
       .catch(() => {})
   }, [isAuthenticated])
-
-  const handleUpdate = async () => {
-    try {
-      await axios.put(
-        `${process.env.REACT_APP_API_URL}/users/update-profile`,
-        {
-          email,
-          phone,
-          onCampus,
-          buildingNumber: onCampus ? building : '',
-          roomNumber:    onCampus ? room     : ''
-        }
-      )
-      alert('Profile updated')
-    } catch {
-      alert('Update failed')
-    }
-  }
-
-  const handleDelete = async (id) => {
-    if (!window.confirm('Remove this listing?')) return
-    try {
-      await axios.delete(`${process.env.REACT_APP_API_URL}/items/${id}`)
-      setItems(items.filter(i => i._id !== id))
-    } catch {
-      alert('Failed to delete')
-    }
-  }
 
   if (!isAuthenticated) {
     return (
@@ -98,17 +53,42 @@ export default function AccountPage() {
     )
   }
 
+  const handleUpdate = async () => {
+    try {
+      await axios.put('/users/update-profile', {
+        email,
+        phone,
+        onCampus,
+        buildingNumber: onCampus ? building : '',
+        roomNumber:    onCampus ? room     : ''
+      })
+      alert('Profile updated')
+    } catch {
+      alert('Update failed')
+    }
+  }
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Remove this listing?')) return
+    try {
+      await axios.delete(`/items/${id}`)
+      setItems(items.filter(i => i._id !== id))
+    } catch {
+      alert('Failed to delete')
+    }
+  }
+
   return (
     <div style={styles.wrapper}>
+      {/* Account Details Section */}
       <div style={styles.section}>
         <HeaderCapsule
           title="Account Details"
-          desc="Your account information"
+          count=""
           open={detailsOpen}
           setOpen={setDetailsOpen}
           icon={AccountIcon}
         />
-        
         <div style={{
           ...styles.animatedBox,
           maxHeight: detailsOpen ? '1000px' : '0',
@@ -161,26 +141,28 @@ export default function AccountPage() {
             </div>
           </div>
 
-          {onCampus && <>
-            <div style={styles.fieldRow}>
-              <label style={styles.label}>Building #:</label>
-              <input
-                type="text"
-                value={building}
-                onChange={e => setBuilding(e.target.value)}
-                style={styles.input}
-              />
-            </div>
-            <div style={styles.fieldRow}>
-              <label style={styles.label}>Room #:</label>
-              <input
-                type="text"
-                value={room}
-                onChange={e => setRoom(e.target.value)}
-                style={styles.input}
-              />
-            </div>
-          </>}
+          {onCampus && (
+            <>
+              <div style={styles.fieldRow}>
+                <label style={styles.label}>Building #:</label>
+                <input
+                  type="text"
+                  value={building}
+                  onChange={e => setBuilding(e.target.value)}
+                  style={styles.input}
+                />
+              </div>
+              <div style={styles.fieldRow}>
+                <label style={styles.label}>Room #:</label>
+                <input
+                  type="text"
+                  value={room}
+                  onChange={e => setRoom(e.target.value)}
+                  style={styles.input}
+                />
+              </div>
+            </>
+          )}
 
           <button onClick={handleUpdate} style={styles.saveBtn}>Apply Changes</button>
           <button onClick={logout} style={{ ...styles.saveBtn, backgroundColor:'var(--text-light)', marginTop:10 }}>
@@ -189,10 +171,11 @@ export default function AccountPage() {
         </div>
       </div>
 
+      {/* Your Listings Section */}
       <div style={styles.section}>
         <HeaderCapsule
           title="Your Listings"
-          desc="Manage your item listings"
+          count={items.length}
           open={listingOpen}
           setOpen={setListingOpen}
           icon={ListingIcon}
@@ -203,25 +186,12 @@ export default function AccountPage() {
           opacity:   listingOpen ? 1 : 0,
           marginTop: listingOpen ? 10 : 0
         }}>
-          <p style={{ color:'var(--text-light)', marginBottom:8 }}>
-            You have {items.length} item{items.length !== 1 ? 's' : ''} listed.
-          </p>
-
           {items.map(item => (
             <div key={item._id} style={styles.card}>
-              <img
-                src={item.images?.[0] || ''}
-                alt={item.name}
-                style={styles.itemImage}
-              />
-              <div
-                style={styles.itemText}
-                onClick={() => navigate(`/item/${item._id}`)}
-              >
+              <img src={item.images?.[0] || ''} alt={item.name} style={styles.itemImage} />
+              <div style={styles.itemText} onClick={() => navigate(`/item/${item._id}`)}>
                 <div style={styles.name}>{item.name}</div>
-                <div style={styles.buy}>
-                  {item.price ? `Buy: ${item.price} SAR` : 'Buy: —'}
-                </div>
+                <div style={styles.buy}>{item.price ? `Buy: ${item.price} SAR` : 'Buy: —'}</div>
                 <div style={styles.bid}>
                   {item.auctionEndDate
                     ? `Bid ends: ${new Date(item.auctionEndDate).toLocaleDateString()}`
@@ -241,7 +211,6 @@ export default function AccountPage() {
               </div>
             </div>
           ))}
-
           <button onClick={() => navigate('/listing')} style={styles.addBtn}>
             <AddIcon style={styles.addIcon}/> Add New Listing
           </button>
@@ -251,20 +220,20 @@ export default function AccountPage() {
   )
 }
 
-function HeaderCapsule({ title, desc, open, setOpen, icon: Icon }) {
+function HeaderCapsule({ title, count, open, setOpen, icon: Icon }) {
   return (
-    <div
-      style={styles.headerCapsule}
-      onClick={() => setOpen(!open)}
-    >
+    <div style={styles.headerCapsule} onClick={() => setOpen(!open)}>
       <div style={styles.leftSection}>
-        <DropdownIcon style={styles.dropdownIcon}/>
+        <DropdownIcon style={{
+          ...styles.dropdownIcon,
+          transform: open ? 'rotate(0deg)' : 'rotate(-90deg)'
+        }}/>
         <div>
           <div style={styles.headerText}>{title}</div>
-          <div style={styles.subText}>{desc}</div>
+          <div style={styles.subText}>{count} item{count !== 1 ? 's' : ''}</div>
         </div>
       </div>
-      <Icon style={styles.sectionIcon}/>
+      {Icon && <Icon style={styles.sectionIcon}/>}
     </div>
   )
 }
@@ -274,7 +243,7 @@ const styles = {
   section:            { marginBottom:'2rem' },
   headerCapsule:      { display:'flex', justifyContent:'space-between', alignItems:'center', borderRadius:30, padding:'0.75rem 1rem', cursor:'pointer', backgroundColor:'var(--primary-green)', color:'var(--white)' },
   leftSection:        { display:'flex', alignItems:'center', gap:10 },
-  dropdownIcon:       { width:24, height:24, filter:'brightness(0) invert(1)', transition:'transform .3s', transform: 'rotate(0deg)' }, 
+  dropdownIcon:       { width:24, height:24, filter:'brightness(0) invert(1)', transition:'transform .3s' },
   sectionIcon:        { width:28, height:28, fill:'var(--white)' },
   headerText:         { fontSize:'1rem', fontWeight:'bold', color:'var(--white)' },
   subText:            { fontSize:'0.75rem', opacity:0.9, color:'var(--white)' },
