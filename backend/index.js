@@ -5,15 +5,20 @@ require('dotenv').config();
 
 const app = express();
 
-// ✅ CORS: allow all Vercel preview and production URLs
-const allowedPattern = /^https:\/\/mern-vercel(-[\w]+)?\.m7snitors-projects\.vercel\.app$/;
-
+// ✅ Dynamic CORS for Vercel and local development
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedPattern.test(origin)) {
+    console.log('Incoming origin:', origin);
+    if (
+      !origin ||                      // allow server-to-server or curl requests
+      origin.endsWith('.vercel.app') || // allow any Vercel preview or production
+      origin === 'http://localhost:3000'
+    ) {
+      console.log('CORS allowed:', origin);
       callback(null, true);
     } else {
-      callback(new Error('CORS blocked for: ' + origin));
+      console.log('CORS blocked for:', origin);
+      callback(new Error('CORS not allowed from: ' + origin));
     }
   },
   credentials: true
@@ -21,7 +26,7 @@ app.use(cors({
 
 // ✅ Middleware
 app.use(express.json());
-app.use('/uploads', express.static('uploads')); // optional for dev
+app.use('/uploads', express.static('uploads')); // optional for local file serving
 
 // ✅ Routes
 app.use('/api/auth', require('./routes/auth'));
@@ -29,7 +34,15 @@ app.use('/api/users', require('./routes/user'));
 app.use('/api/items', require('./routes/items'));
 app.use('/api/messages', require('./routes/message'));
 
-// ✅ MongoDB Connection
+// ✅ Optional: Debug route to inspect headers
+app.get('/api/debug', (req, res) => {
+  res.json({
+    origin: req.get('origin'),
+    headers: req.headers
+  });
+});
+
+// ✅ MongoDB connection
 const connectDB = async () => {
   try {
     await mongoose.connect(process.env.MONGO_URI);
