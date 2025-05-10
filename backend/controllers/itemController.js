@@ -12,6 +12,9 @@ exports.getAllItems = async (req, res) => {
 
 exports.postItem = async (req, res) => {
   try {
+    console.log('files:', req.files);
+console.log('body:', req.body);
+console.log('user:', req.user);
     const {
       name,
       description,

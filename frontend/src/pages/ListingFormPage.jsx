@@ -44,7 +44,6 @@ export default function ListingFormPage() {
     })
     setCats(editItem.categories||[])
     setMode(editItem.type||'')
-    // prefill previews with existing URLs
     setPreviews([
       editItem.images[0]||'',
       editItem.images[1]||'',
@@ -123,7 +122,7 @@ export default function ListingFormPage() {
     fd.append('categories',  cats.join(','))
     fd.append('price',       form.price)
     fd.append('startingBid', bd)
-    fd.append('duration',    dr)             // ← send days here
+    fd.append('duration',    dr)
     files.forEach(f=> f instanceof File && fd.append('images', f))
 
     try {
@@ -133,11 +132,10 @@ export default function ListingFormPage() {
           'Content-Type':'multipart/form-data'
         }
       }
-      const API = process.env.REACT_APP_API_BASE
       if (editItem) {
-        await axios.put(`${API}/items/${editItem._id}`, fd, cfg)
+        await axios.put(`/items/${editItem._id}`, fd, cfg)
       } else {
-        await axios.post(`${API}/items/post-item`, fd, cfg)
+        await axios.post(`/items/post-item`, fd, cfg)
       }
       navigate('/account')
     } catch {
