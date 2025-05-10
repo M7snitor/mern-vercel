@@ -3,21 +3,17 @@
 const express    = require('express')
 const mongoose   = require('mongoose')
 const cors       = require('cors')
-require('dotenv').config()
 const serverless = require('serverless-http')
+require('dotenv').config()
 
 const app = express()
 
-// CORS must be enabled _before_ any routes, and cover OPTIONS:
-app.use(
-  cors({
-    origin: true, // allow all origins; tighten this in prod if you like
-    methods: ['GET','POST','PUT','DELETE','OPTIONS'],
-    allowedHeaders: ['Content-Type','Authorization'],
-    credentials: true
-  })
-)
-// ensure preflight requests are handled
+// Enable CORS (including OPTIONS/preflight)
+app.use(cors({
+  origin: true,
+  methods: ['GET','POST','PUT','DELETE','OPTIONS'],
+  allowedHeaders: ['Content-Type','Authorization']
+}))
 app.options('*', cors())
 
 app.use(express.json())
@@ -27,7 +23,7 @@ app.use('/api/users',    require('./routes/user'))
 app.use('/api/items',    require('./routes/items'))
 app.use('/api/messages', require('./routes/message'))
 
-// MongoDB connection caching
+// Cache the connection so we only connect once
 let isConnected = false
 async function connectDB() {
   if (isConnected) return
@@ -38,10 +34,8 @@ async function connectDB() {
   isConnected = true
 }
 
-// create the serverless handler _once_
+// Wrap once, then on each invocation ensure DB is ready
 const handler = serverless(app)
-
-// Export the lambda entry‐point: connect DB, then delegate to Express
 module.exports = async (req, res) => {
   await connectDB()
   return handler(req, res)
