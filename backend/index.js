@@ -6,31 +6,39 @@ require('dotenv').config();
 const app = express();
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: 'https://your-frontend.vercel.app',
+  credentials: true
+}));
 app.use(express.json());
 
-// Static file serving (won’t work for uploads on Vercel — now using Cloudinary)
-app.use('/uploads', express.static('uploads')); // okay to leave for dev/testing
+// Static file serving (optional, for local testing)
+app.use('/uploads', express.static('uploads'));
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/users', require('./routes/user'));
-app.use('/api/items', require('./routes/items')); // ← Item routes using Cloudinary
+app.use('/api/items', require('./routes/items'));
 app.use('/api/messages', require('./routes/message'));
 
-// MongoDB connection (prevent multiple connections)
-let isConnected = false;
+// MongoDB connection
 const connectDB = async () => {
-  if (isConnected) return;
   try {
-    await mongoose.connect(process.env.MONGO_URI);
-    isConnected = true;
+    await mongoose.connect(process.env.MONGO_URI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
     console.log('MongoDB connected');
   } catch (err) {
     console.error('MongoDB connection error:', err);
+    process.exit(1); // Crash app if Mongo fails
   }
 };
 
 connectDB();
 
-module.exports = app; // Export app for Vercel serverless deployment
+// Start server (for Render)
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
