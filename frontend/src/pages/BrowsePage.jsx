@@ -1,103 +1,133 @@
-import { useState, useEffect } from 'react';
-import { useLocation, useNavigate, Link } from 'react-router-dom';
-import axios from './axios';
-import logo from '../assets/LogoNameAlpha.png';
+import { useState, useEffect } from 'react'
+import { useLocation, useNavigate, Link } from 'react-router-dom'
+import axios from './axios'
+import logo from '../assets/LogoAlpha.png'
 
 function BrowsePage() {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const [seller, setSeller] = useState('All');
-  const [filter, setFilter] = useState('All');
-  const [club, setClub] = useState('All');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState('new');
-  const [theme, setTheme] = useState({ green: '#00813e' });
-  const [items, setItems] = useState([]);
+  const location = useLocation()
+  const navigate = useNavigate()
+  const [seller, setSeller] = useState('All')
+  const [filter, setFilter] = useState('All')
+  const [club, setClub] = useState('All')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [sortBy, setSortBy] = useState('new')
+  const [theme, setTheme] = useState({ green: '#00813e' })
+  const [items, setItems] = useState([])
 
+  // fetch public items once
   useEffect(() => {
-    axios.get(`${process.env.REACT_APP_API_URL}/items/all`)
-      .then(res => setItems(res.data.items || []))
-      .catch(err => console.error('Error fetching items:', err));
-  }, []);
+    async function fetchItems() {
+      try {
+        const res = await axios.get('/items/all')
+        setItems(res.data.items || [])
+      } catch (err) {
+        console.error('Error fetching items:', err)
+      }
+    }
+    fetchItems()
+  }, [])
 
+  // update filters from URL
   useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const cat = params.get('category');
-    const sellerParam = params.get('seller');
-    const clubParam = params.get('club');
-    const search = params.get('search');
-    if (cat) setFilter(cat); else setFilter('All');
-    if (sellerParam) setSeller(sellerParam); else setSeller('All');
-    if (clubParam) setClub(clubParam); else setClub('All');
-    if (search) setSearchQuery(search); else setSearchQuery('');
-  }, [location.search]);
+    const params = new URLSearchParams(location.search)
+    setFilter(params.get('category') || 'All')
+    setSeller(params.get('seller') || 'All')
+    setClub(params.get('club') || 'All')
+    setSearchQuery(params.get('search') || '')
+  }, [location.search])
 
-  const filteredItems = items.filter((item) => {
-    if (typeof item.quantity === 'number' && item.quantity <= 0) return false;
-    if (item.auctionEndDate && new Date(item.auctionEndDate) <= new Date()) return false;
-    const matchesSeller = seller === 'All' || (seller === 'Clubs' && item.fromClub) || (seller === 'Resell' && !item.fromClub);
-    const matchesCategory = filter === 'All' || item.categories.includes(filter);
-    const matchesClub = !item.fromClub || seller !== 'Clubs' || club === 'All' || (item.club && item.club === club);
-    const matchesSearch = searchQuery === '' || item.name.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesSeller && matchesCategory && matchesClub && matchesSearch;
-  }).sort((a, b) => {
-    if (sortBy === 'price') return a.price - b.price;
-    if (sortBy === 'priceHigh') return b.price - a.price;
-    return new Date(b.date) - new Date(a.date);
-  });
+  // compute filtered & sorted items
+  const filteredItems = items
+    .filter(item => {
+      if (typeof item.quantity === 'number' && item.quantity <= 0) return false
+      if (item.auctionEndDate && new Date(item.auctionEndDate) <= new Date()) return false
+      const matchesSeller =
+        seller === 'All' ||
+        (seller === 'Clubs' && item.fromClub) ||
+        (seller === 'Resell' && !item.fromClub)
+      const matchesCategory =
+        filter === 'All' || item.categories.includes(filter)
+      const matchesClub =
+        seller !== 'Clubs' ||
+        club === 'All' ||
+        (item.club && item.club === club)
+      const matchesSearch =
+        searchQuery === '' ||
+        item.name.toLowerCase().includes(searchQuery.toLowerCase())
+      return (
+        matchesSeller &&
+        matchesCategory &&
+        matchesClub &&
+        matchesSearch
+      )
+    })
+    .sort((a, b) => {
+      if (sortBy === 'price') return a.price - b.price
+      if (sortBy === 'priceHigh') return b.price - a.price
+      return new Date(b.date) - new Date(a.date)
+    })
 
+  // load theme colors
   useEffect(() => {
-    const root = getComputedStyle(document.documentElement);
-    setTheme({ green: root.getPropertyValue('--primary-green') || '#00813e' });
-  }, []);
+    const root = getComputedStyle(document.documentElement)
+    setTheme({ green: root.getPropertyValue('--primary-green') || '#00813e' })
+  }, [])
 
-  const updateQuery = (nextSeller = seller, nextFilter = filter, nextClub = club) => {
-    const query = new URLSearchParams();
-    if (nextSeller !== 'All') query.set('seller', nextSeller);
-    if (nextFilter !== 'All') query.set('category', nextFilter);
-    if (nextSeller === 'Clubs' && nextClub !== 'All') query.set('club', nextClub);
-    if (searchQuery) query.set('search', searchQuery);
-    return query.toString();
-  };
+  // build URL for navigation
+  const updateQuery = (
+    nextSeller = seller,
+    nextFilter = filter,
+    nextClub = club
+  ) => {
+    const q = new URLSearchParams()
+    if (nextSeller !== 'All') q.set('seller', nextSeller)
+    if (nextFilter !== 'All') q.set('category', nextFilter)
+    if (nextSeller === 'Clubs' && nextClub !== 'All') q.set('club', nextClub)
+    if (searchQuery) q.set('search', searchQuery)
+    return q.toString()
+  }
 
-  const handleSellerClick = (val) => {
-    setSeller(val);
-    const nextClub = val === 'Clubs' ? club : 'All';
-    navigate(`/browse?${updateQuery(val, filter, nextClub)}`);
-  };
+  const handleSellerClick = val => {
+    const nextClub = val === 'Clubs' ? club : 'All'
+    setSeller(val)
+    navigate(`/browse?${updateQuery(val, filter, nextClub)}`)
+  }
 
-  const handleCategoryClick = (cat) => {
-    setFilter(cat);
-    navigate(`/browse?${updateQuery(seller, cat, club)}`);
-  };
+  const handleCategoryClick = cat => {
+    setFilter(cat)
+    navigate(`/browse?${updateQuery(seller, cat, club)}`)
+  }
 
-  const handleClubChange = (clubName) => {
-    setClub(clubName);
-    navigate(`/browse?${updateQuery(seller, filter, clubName)}`);
-  };
+  const handleClubChange = clubName => {
+    setClub(clubName)
+    navigate(`/browse?${updateQuery(seller, filter, clubName)}`)
+  }
 
-  const handleSortChange = (val) => setSortBy(val);
+  const handleSortChange = val => {
+    setSortBy(val)
+  }
 
-  const clubList = ['All', 'Media', 'Consulting', 'Cyclists', 'AE', 'IE'];
-  const categories = ['All', 'Electronics', 'Furniture', 'Books', 'Art', 'Sports'];
-  const sellers = ['All', 'Clubs', 'Resell'];
+  const clubList = ['All', 'Media', 'Consulting', 'Cyclists', 'AE', 'IE']
+  const categories = ['All', 'Electronics', 'Furniture', 'Books', 'Art', 'Sports']
+  const sellers = ['All', 'Clubs', 'Resell']
 
   return (
     <div style={styles.wrapper}>
       <img src={logo} alt="KFUPM Market" style={styles.logo} />
 
       <div style={styles.headerContent}>
+        {/* Seller Filter */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <span style={styles.filterLabel}>Seller:</span>
           <div style={{ ...styles.filterRow, overflowX: 'auto' }}>
-            {sellers.map((val) => (
+            {sellers.map(val => (
               <button
                 key={val}
                 onClick={() => handleSellerClick(val)}
                 style={{
                   ...styles.filterBtn,
                   backgroundColor: seller === val ? theme.green : '#fff',
-                  color: seller === val ? '#fff' : '#000',
+                  color: seller === val ? '#fff' : '#000'
                 }}
               >
                 {val === 'Resell' ? 'Student Resell' : val}
@@ -108,17 +138,18 @@ function BrowsePage() {
 
         <hr style={{ margin: '6px 0' }} />
 
+        {/* Category Filter */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <span style={styles.filterLabel}>Type:</span>
           <div style={{ ...styles.filterRow, overflowX: 'auto' }}>
-            {categories.map((cat) => (
+            {categories.map(cat => (
               <button
                 key={cat}
                 onClick={() => handleCategoryClick(cat)}
                 style={{
                   ...styles.filterBtn,
                   backgroundColor: filter === cat ? theme.green : '#fff',
-                  color: filter === cat ? '#fff' : '#000',
+                  color: filter === cat ? '#fff' : '#000'
                 }}
               >
                 {cat}
@@ -127,23 +158,24 @@ function BrowsePage() {
           </div>
         </div>
 
+        {/* Club Filter */}
         {seller === 'Clubs' && (
           <>
             <hr style={{ margin: '6px 0' }} />
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <span style={styles.filterLabel}>Club:</span>
               <div style={{ ...styles.filterRow, overflowX: 'auto' }}>
-                {clubList.map((clubName) => (
+                {clubList.map(name => (
                   <button
-                    key={clubName}
-                    onClick={() => handleClubChange(clubName)}
+                    key={name}
+                    onClick={() => handleClubChange(name)}
                     style={{
                       ...styles.filterBtn,
-                      backgroundColor: club === clubName ? theme.green : '#fff',
-                      color: club === clubName ? '#fff' : '#000',
+                      backgroundColor: club === name ? theme.green : '#fff',
+                      color: club === name ? '#fff' : '#000'
                     }}
                   >
-                    {clubName}
+                    {name}
                   </button>
                 ))}
               </div>
@@ -153,9 +185,14 @@ function BrowsePage() {
 
         <hr style={{ margin: '6px 0' }} />
 
+        {/* Sort */}
         <div style={{ ...styles.filterRow, justifyContent: 'flex-end', marginTop: 6 }}>
           <span style={{ marginRight: 10, fontSize: '0.85rem' }}>Sort by:</span>
-          <select value={sortBy} onChange={(e) => handleSortChange(e.target.value)} style={{ padding: '0.25rem 0.5rem', borderRadius: 6 }}>
+          <select
+            value={sortBy}
+            onChange={e => handleSortChange(e.target.value)}
+            style={{ padding: '0.25rem 0.5rem', borderRadius: 6 }}
+          >
             <option value="new">New</option>
             <option value="price">Price: Low to High</option>
             <option value="priceHigh">Price: High to Low</option>
@@ -163,25 +200,38 @@ function BrowsePage() {
         </div>
       </div>
 
+      {/* Items Grid */}
       <div style={styles.itemGrid}>
-        {filteredItems.map((item) => (
-          <Link to={`/item/${item._id}`} key={item._id} style={{ textDecoration: 'none', color: 'inherit' }}>
+        {filteredItems.map(item => (
+          <Link
+            to={`/item/${item._id}`}
+            key={item._id}
+            style={{ textDecoration: 'none', color: 'inherit' }}
+          >
             <div style={styles.card}>
-              <img src={(item.images && item.images[0]) || ''} alt={item.name} style={styles.itemImage} />
+              <img
+                src={item.images?.[0] || ''}
+                alt={item.name}
+                style={styles.itemImage}
+              />
               <div style={styles.itemName}>{item.name}</div>
               <div style={styles.itemPrice}>
                 {item.price ? `Buy: ${item.price} SAR` : <span style={{ opacity: 0.5 }}>Buy: —</span>}
               </div>
               <div style={styles.bidInfo}>
-                {item.auctionEndDate ? `Bid ends: ${new Date(item.auctionEndDate).toLocaleDateString()}` : <span style={{ opacity: 0.5 }}>Bid: —</span>}
+                {item.auctionEndDate
+                  ? `Bid ends: ${new Date(item.auctionEndDate).toLocaleDateString()}`
+                  : <span style={{ opacity: 0.5 }}>Bid: —</span>}
               </div>
             </div>
           </Link>
         ))}
       </div>
     </div>
-  );
+  )
 }
+
+
 
 const styles = {
   wrapper: {
