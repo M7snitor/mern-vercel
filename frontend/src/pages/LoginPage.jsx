@@ -30,8 +30,8 @@ function LoginPage() {
   const handleSubmit = async () => {
     try {
       const url = isLogin
-        ? `${process.env.REACT_APP_API_URL}/auth/login`
-        : `${process.env.REACT_APP_API_URL}/auth/register`;
+        ? `${process.env.REACT_APP_API_BASE}/auth/login`
+        : `${process.env.REACT_APP_API_BASE}/auth/register`;
 
       const payload = isLogin
         ? {

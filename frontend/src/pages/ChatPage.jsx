@@ -9,7 +9,7 @@ export default function ChatPage() {
   const { token, user } = useAuth()
   const { withUserId } = useParams()
   const navigate = useNavigate()
-  const API = process.env.REACT_APP_API_URL
+  const API = process.env.REACT_APP_API_BASE
   const headers = { headers: { Authorization: `Bearer ${token}` } }
 
   const [messages, setMessages] = useState([])

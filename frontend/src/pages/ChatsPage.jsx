@@ -7,7 +7,7 @@ import { useAuth } from '../context/AuthContext'
 export default function ChatsPage() {
   const { token } = useAuth()
   const navigate = useNavigate()
-  const API = process.env.REACT_APP_API_URL
+  const API = <process className="env REACT_APP_API_BASE"></process>
   const headers = { headers: { Authorization: `Bearer ${token}` } }
 
   const [peers, setPeers] = useState([])

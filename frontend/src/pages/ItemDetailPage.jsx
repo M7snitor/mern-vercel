@@ -26,7 +26,7 @@ export default function ItemDetailPage() {
   }, [])
 
   useEffect(() => {
-    const API = process.env.REACT_APP_API_URL
+    const API = process.env.REACT_APP_API_BASE
     axios.get(`${API}/items/all`)
       .then(res => {
         const found = res.data.items.find(i => i._id === id)
@@ -62,7 +62,7 @@ export default function ItemDetailPage() {
 
   const handleAddToCart = async () => {
     try {
-      const API = process.env.REACT_APP_API_URL
+      const API = process.env.REACT_APP_API_BASE
       await axios.post(
         `${API}/users/cart/add/${item._id}`,
         {},
@@ -76,7 +76,7 @@ export default function ItemDetailPage() {
 
   const handleAddToBidlist = async () => {
     try {
-      const API = process.env.REACT_APP_API_URL
+      const API = process.env.REACT_APP_API_BASE
       await axios.post(
         `${API}/users/bidlist/add/${item._id}`,
         {},
