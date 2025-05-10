@@ -1,42 +1,36 @@
-// backend/index.js
+const express = require('express');
+const mongoose = require('mongoose');
+const cors = require('cors');
+require('dotenv').config();
 
-const express    = require('express')
-const mongoose   = require('mongoose')
-const cors       = require('cors')
-const serverless = require('serverless-http')
-require('dotenv').config()
+const app = express();
 
-const app = express()
+// Middleware
+app.use(cors());
+app.use(express.json());
 
-// Enable CORS (including OPTIONS/preflight)
-app.use(cors({
-  origin: true,
-  methods: ['GET','POST','PUT','DELETE','OPTIONS'],
-  allowedHeaders: ['Content-Type','Authorization']
-}))
-app.options('*', cors())
+// Static file serving (won’t work for uploads on Vercel — now using Cloudinary)
+app.use('/uploads', express.static('uploads')); // okay to leave for dev/testing
 
-app.use(express.json())
-app.use('/uploads', express.static('uploads'))
-app.use('/api/auth',     require('./routes/auth'))
-app.use('/api/users',    require('./routes/user'))
-app.use('/api/items',    require('./routes/items'))
-app.use('/api/messages', require('./routes/message'))
+// Routes
+app.use('/api/auth', require('./routes/auth'));
+app.use('/api/users', require('./routes/user'));
+app.use('/api/items', require('./routes/items')); // ← Item routes using Cloudinary
+app.use('/api/messages', require('./routes/message'));
 
-// Cache the connection so we only connect once
-let isConnected = false
-async function connectDB() {
-  if (isConnected) return
-  await mongoose.connect(process.env.MONGO_URI, {
-    useNewUrlParser:    true,
-    useUnifiedTopology: true
-  })
-  isConnected = true
-}
+// MongoDB connection (prevent multiple connections)
+let isConnected = false;
+const connectDB = async () => {
+  if (isConnected) return;
+  try {
+    await mongoose.connect(process.env.MONGO_URI);
+    isConnected = true;
+    console.log('MongoDB connected');
+  } catch (err) {
+    console.error('MongoDB connection error:', err);
+  }
+};
 
-// Wrap once, then on each invocation ensure DB is ready
-const handler = serverless(app)
-module.exports = async (req, res) => {
-  await connectDB()
-  return handler(req, res)
-}
+connectDB();
+
+module.exports = app; // Export app for Vercel serverless deployment
